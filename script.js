@@ -1,4 +1,4 @@
-let chart; // para manter referência do gráfico Chart.js
+let chart; // referência do gráfico Chart.js
 
 document.getElementById("formSolo").addEventListener("submit", function (e) {
   e.preventDefault();
@@ -24,9 +24,7 @@ document.getElementById("formSolo").addEventListener("submit", function (e) {
   const resultado = document.getElementById("resultado");
   resultado.innerHTML = `<h2>Resultado da Análise:</h2><p><strong>Produtor:</strong> ${nomeProdutor}</p>`;
 
-  const atual = [];
-  const minimos = [];
-  const maximos = [];
+  const atual = [], minimos = [], maximos = [];
 
   for (const nutriente in valores) {
     const valor = valores[nutriente];
@@ -34,14 +32,11 @@ document.getElementById("formSolo").addEventListener("submit", function (e) {
     let status, classe;
 
     if (valor < ideal.min) {
-      status = "Baixo";
-      classe = "baixo";
+      status = "Baixo"; classe = "baixo";
     } else if (valor > ideal.max) {
-      status = "Alto";
-      classe = "alto";
+      status = "Alto"; classe = "alto";
     } else {
-      status = "Adequado";
-      classe = "bom";
+      status = "Adequado"; classe = "bom";
     }
 
     resultado.innerHTML += `<div class="resultado-item ${classe}">
@@ -58,7 +53,6 @@ document.getElementById("formSolo").addEventListener("submit", function (e) {
   document.getElementById("btnPdf").style.display = "block";
 });
 
-// Gera o gráfico de comparação com Chart.js
 function gerarGrafico(labels, atual, min, max) {
   const ctx = document.getElementById('graficoNutrientes').getContext('2d');
 
@@ -69,36 +63,20 @@ function gerarGrafico(labels, atual, min, max) {
     data: {
       labels,
       datasets: [
-        {
-          label: 'Valor Atual',
-          data: atual,
-          backgroundColor: '#007bff'
-        },
-        {
-          label: 'Mínimo Ideal',
-          data: min,
-          backgroundColor: '#ffc107'
-        },
-        {
-          label: 'Máximo Ideal',
-          data: max,
-          backgroundColor: '#28a745'
-        }
+        { label: 'Valor Atual', data: atual, backgroundColor: '#007bff' },
+        { label: 'Mínimo Ideal', data: min, backgroundColor: '#ffc107' },
+        { label: 'Máximo Ideal', data: max, backgroundColor: '#28a745' }
       ]
     },
     options: {
       responsive: true,
       plugins: {
-        title: {
-          display: true,
-          text: 'Comparação dos Nutrientes'
-        }
+        title: { display: true, text: 'Comparação dos Nutrientes' }
       }
     }
   });
 }
 
-// Gera a recomendação de adubo simples com base em fósforo e potássio
 function gerarRecomendacaoAdubo(valores) {
   let recomendacao = '';
   const fosforo = valores.Fósforo;
@@ -120,40 +98,42 @@ function gerarRecomendacaoAdubo(valores) {
   `;
 }
 
-// Geração do PDF com gráfico incluso
+// PDF otimizado para etiqueta MDK-081 (72mm de largura)
 document.getElementById("btnPdf").addEventListener("click", function () {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  
+  // Formato 72 mm x 100 mm
+  const doc = new jsPDF({ unit: 'mm', format: [72, 100] });
 
   const nomeProdutor = document.getElementById("produtor").value;
 
-  doc.setFontSize(16);
-  doc.text("Resultado da Análise de Solo", 10, 15);
+  let y = 5;
+  doc.setFontSize(10);
+  doc.text("Análise de Solo", 2, y);
+  y += 5;
 
-  doc.setFontSize(12);
-  doc.text(`Produtor: ${nomeProdutor}`, 10, 25);
+  doc.setFontSize(8);
+  doc.text(`Produtor: ${nomeProdutor}`, 2, y);
+  y += 4;
 
   const resultadoItems = document.querySelectorAll(".resultado-item");
-  let y = 40;
-
-  resultadoItems.forEach((item, i) => {
+  resultadoItems.forEach((item) => {
     const text = item.textContent.trim();
-    doc.text(`${i + 1}. ${text}`, 10, y);
-    y += 10;
+    doc.text(text, 2, y);
+    y += 4;
   });
 
   const adubo = document.getElementById("recomendacaoAdubo").innerText;
-  doc.text("Recomendação:", 10, y + 10);
-  doc.text(adubo, 10, y + 20);
+  y += 2;
+  doc.text("Recomendação:", 2, y);
+  y += 4;
+  doc.text(doc.splitTextToSize(adubo, 68), 2, y);
+  y += 10;
 
-  // Exporta o gráfico como imagem e insere no PDF
+  // Insere o gráfico reduzido
   const canvas = document.getElementById('graficoNutrientes');
   const imgData = canvas.toDataURL("image/png");
+  doc.addImage(imgData, 'PNG', 2, y, 68, 30);
 
-  doc.addPage(); // nova página para o gráfico
-  doc.setFontSize(14);
-  doc.text("Gráfico de Nutrientes", 10, 15);
-  doc.addImage(imgData, 'PNG', 10, 25, 180, 100); // (imagem, tipo, x, y, largura, altura)
-
-  doc.save(`analise-solo-${nomeProdutor.replace(/\s+/g, "_")}.pdf`);
+  doc.save(`etiqueta_${nomeProdutor.replace(/\s+/g, "_")}.pdf`);
 });
